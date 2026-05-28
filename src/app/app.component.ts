@@ -3,6 +3,7 @@ import { AfterViewInit, Component, OnDestroy, OnInit, computed, signal } from '@
 import { FormsModule } from '@angular/forms';
 import * as L from 'leaflet';
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
+import { environment } from '../environments/environment';
 
 type CrisisStatus = 'Reported' | 'Verified' | 'In Progress' | 'Solved';
 type CrisisType = 'Garbage Dump' | 'Water Leakage' | 'Air Pollution' | 'Blocked Drain' | 'Illegal Dumping' | 'Other';
@@ -37,10 +38,6 @@ interface ReportForm {
   photoUrl: string;
 }
 
-const SUPABASE_URL = '';
-const SUPABASE_ANON_KEY = '';
-const CLOUDINARY_CLOUD_NAME = '';
-const CLOUDINARY_UPLOAD_PRESET = '';
 const STORAGE_KEY = 'crisis-shield-reports';
 
 const SAMPLE_REPORTS: CrisisReport[] = [
@@ -133,8 +130,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly statuses: CrisisStatus[] = ['Reported', 'Verified', 'In Progress', 'Solved'];
   readonly urgencyLevels: Urgency[] = ['Low', 'Medium', 'High'];
   readonly filters: FilterType[] = ['All', 'High Urgency', 'Garbage Dump', 'Water Leakage', 'Air Pollution', 'Blocked Drain', 'Illegal Dumping', 'Other', 'Solved'];
-  private readonly supabase: SupabaseClient | null = SUPABASE_URL && SUPABASE_ANON_KEY
-    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  private readonly supabase: SupabaseClient | null = environment.supabaseUrl && environment.supabaseAnonKey
+    ? createClient(environment.supabaseUrl, environment.supabaseAnonKey)
     : null;
 
   reports = signal<CrisisReport[]>(this.loadLocalReports());
@@ -287,7 +284,7 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       return;
     }
     this.form.update((current) => ({ ...current, photoUrl: url }));
-    this.imageMessage.set(CLOUDINARY_CLOUD_NAME ? 'Photo uploaded.' : 'Photo attached locally.');
+    this.imageMessage.set(environment.cloudinaryCloudName ? 'Photo uploaded.' : 'Photo attached locally.');
   }
 
   async uploadAfterPhoto(event: Event, reportId: number): Promise<void> {
@@ -447,12 +444,12 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       return '';
     }
 
-    if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_UPLOAD_PRESET) {
+    if (environment.cloudinaryCloudName && environment.cloudinaryUploadPreset) {
       const payload = new FormData();
       payload.append('file', file);
-      payload.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      payload.append('upload_preset', environment.cloudinaryUploadPreset);
 
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${environment.cloudinaryCloudName}/image/upload`, {
         method: 'POST',
         body: payload
       });

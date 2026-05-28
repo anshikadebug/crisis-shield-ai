@@ -39,20 +39,34 @@ using (true)
 with check (true);
 ```
 
-Then paste your Supabase project URL and anon key into these constants in `src/app/app.component.ts`:
+Then add these environment variables in Vercel:
 
-```ts
-const SUPABASE_URL = '';
-const SUPABASE_ANON_KEY = '';
+```text
+NG_APP_SUPABASE_URL
+NG_APP_SUPABASE_ANON_KEY
 ```
 
 ## Cloudinary Uploads
 
-Create a free Cloudinary account and an unsigned upload preset. Then paste:
+Create a free Cloudinary account and an unsigned upload preset. Then add these environment variables in Vercel:
 
-```ts
-const CLOUDINARY_CLOUD_NAME = '';
-const CLOUDINARY_UPLOAD_PRESET = '';
+```text
+NG_APP_CLOUDINARY_CLOUD_NAME
+NG_APP_CLOUDINARY_UPLOAD_PRESET
 ```
 
 If these are empty, Crisis Shield AI stores uploaded images locally in the browser so your demo still works offline.
+
+## Local Testing With Keys
+
+On Windows PowerShell, you can test online sync before pushing:
+
+```powershell
+$env:NG_APP_SUPABASE_URL="your-supabase-url"
+$env:NG_APP_SUPABASE_ANON_KEY="your-anon-key"
+$env:NG_APP_CLOUDINARY_CLOUD_NAME="your-cloud-name"
+$env:NG_APP_CLOUDINARY_UPLOAD_PRESET="your-upload-preset"
+npm.cmd run build
+```
+
+The build script writes these values into `src/environments/environment.ts` during deployment.
