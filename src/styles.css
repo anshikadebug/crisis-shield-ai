@@ -37,8 +37,27 @@ textarea {
   font-weight: 900;
 }
 
+.crisis-marker em {
+  position: absolute;
+  right: -14px;
+  bottom: -8px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  padding: 1px 5px;
+  background: #176f8c;
+  color: #ffffff;
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .crisis-marker.marker-solved {
   background: #2f855a;
+}
+
+.crisis-marker.marker-ignored {
+  background: #c53030;
 }
 
 .leaflet-popup-content {

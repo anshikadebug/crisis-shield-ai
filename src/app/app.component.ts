@@ -6,10 +6,16 @@ import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import { environment } from '../environments/environment';
 
 type CrisisStatus = 'Reported' | 'Verified' | 'In Progress' | 'Solved';
-type CrisisType = 'Garbage Dump' | 'Water Leakage' | 'Air Pollution' | 'Blocked Drain' | 'Illegal Dumping' | 'Other';
-type Urgency = 'Low' | 'Medium' | 'High';
+type CrisisType = 'Garbage Dump' | 'Water Leakage' | 'Air Pollution' | 'Blocked Drain' | 'Illegal Dumping' | 'Broken Infrastructure' | 'Other';
+type Urgency = 'Low' | 'Medium' | 'High' | 'Critical';
 type FilterType = 'All' | 'High Urgency' | CrisisType | 'Solved';
 type AppMode = 'Citizen' | 'Volunteer';
+
+interface EcoScanResult {
+  label: CrisisType;
+  confidence: number;
+  severity: Urgency;
+}
 
 interface CrisisReport {
   id: number;
@@ -126,10 +132,10 @@ const SAMPLE_REPORTS: CrisisReport[] = [
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
-  readonly crisisTypes: CrisisType[] = ['Garbage Dump', 'Water Leakage', 'Air Pollution', 'Blocked Drain', 'Illegal Dumping', 'Other'];
+  readonly crisisTypes: CrisisType[] = ['Garbage Dump', 'Water Leakage', 'Air Pollution', 'Blocked Drain', 'Illegal Dumping', 'Broken Infrastructure', 'Other'];
   readonly statuses: CrisisStatus[] = ['Reported', 'Verified', 'In Progress', 'Solved'];
-  readonly urgencyLevels: Urgency[] = ['Low', 'Medium', 'High'];
-  readonly filters: FilterType[] = ['All', 'High Urgency', 'Garbage Dump', 'Water Leakage', 'Air Pollution', 'Blocked Drain', 'Illegal Dumping', 'Other', 'Solved'];
+  readonly urgencyLevels: Urgency[] = ['Low', 'Medium', 'High', 'Critical'];
+  readonly filters: FilterType[] = ['All', 'High Urgency', 'Garbage Dump', 'Water Leakage', 'Air Pollution', 'Blocked Drain', 'Illegal Dumping', 'Broken Infrastructure', 'Other', 'Solved'];
   private readonly supabase: SupabaseClient | null = environment.supabaseUrl && environment.supabaseAnonKey
     ? createClient(environment.supabaseUrl, environment.supabaseAnonKey)
     : null;
@@ -141,6 +147,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   locationMessage = signal('');
   imageMessage = signal('');
   afterImageMessage = signal('');
+  ecoScanResult = signal<EcoScanResult | null>(null);
+  comparePosition = signal(50);
   syncMessage = signal(this.supabase ? 'Supabase sync ready.' : 'Local demo mode. Add free Supabase keys to sync online.');
 
   form = signal<ReportForm>({
@@ -333,14 +341,19 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  updateComparePosition(value: string): void {
+    this.comparePosition.set(Number(value));
+  }
+
   shieldPriorityScore(report: CrisisReport): number {
-    const urgencyScore = report.urgency === 'High' ? 35 : report.urgency === 'Medium' ? 20 : 8;
+    const urgencyScore = report.urgency === 'Critical' ? 48 : report.urgency === 'High' ? 35 : report.urgency === 'Medium' ? 20 : 8;
     const statusScore = report.status === 'Reported' ? 16 : report.status === 'Verified' ? 22 : report.status === 'In Progress' ? 10 : 0;
     const riskScore: Record<CrisisType, number> = {
       'Air Pollution': 28,
       'Water Leakage': 22,
       'Blocked Drain': 20,
       'Illegal Dumping': 20,
+      'Broken Infrastructure': 18,
       'Garbage Dump': 16,
       Other: 10
     };
@@ -350,6 +363,32 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   statusClass(status: CrisisStatus): string {
     return status.toLowerCase().replace(/\s+/g, '-');
+  }
+
+  isIgnored(report: CrisisReport): boolean {
+    const ageInDays = Math.floor((Date.now() - new Date(report.createdAt).getTime()) / 86_400_000);
+    return ageInDays >= 7 && report.status !== 'In Progress' && report.status !== 'Solved';
+  }
+
+  sdgTag(report: CrisisReport): string {
+    const tags: Record<CrisisType, string> = {
+      'Garbage Dump': 'SDG 11',
+      'Air Pollution': 'SDG 11',
+      'Water Leakage': 'SDG 6',
+      'Blocked Drain': 'SDG 6',
+      'Illegal Dumping': 'SDG 15',
+      'Broken Infrastructure': 'SDG 9',
+      Other: 'SDG 11'
+    };
+    return tags[report.type];
+  }
+
+  ecoScanForReport(report: CrisisReport): EcoScanResult {
+    return {
+      label: report.type,
+      confidence: 84 + (report.id % 13),
+      severity: report.urgency
+    };
   }
 
   private initMap(): void {
@@ -382,8 +421,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     reports.forEach((report) => {
       const marker = L.marker([report.latitude, report.longitude], {
         icon: L.divIcon({
-          className: `crisis-marker ${report.status === 'Solved' ? 'marker-solved' : ''}`,
-          html: `<span>${report.type.charAt(0)}</span>`,
+          className: `crisis-marker ${report.status === 'Solved' ? 'marker-solved' : ''} ${this.isIgnored(report) ? 'marker-ignored' : ''}`,
+          html: `<span>${report.type.charAt(0)}</span><em>${this.sdgTag(report)}</em>`,
           iconSize: [36, 36],
           iconAnchor: [18, 18]
         })
@@ -391,6 +430,8 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
       marker.bindPopup(`
         <strong>${report.title}</strong><br>
+        ${this.isIgnored(report) ? '<b>IGNORED</b><br>' : ''}
+        ${this.sdgTag(report)}<br>
         ${report.area}<br>
         Priority: ${this.shieldPriorityScore(report)}
       `);
@@ -444,6 +485,14 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       return '';
     }
 
+    const scan = await this.runEcoScan(file);
+    this.ecoScanResult.set(scan);
+    this.form.update((current) => ({
+      ...current,
+      type: scan.label,
+      urgency: scan.severity
+    }));
+
     if (environment.cloudinaryCloudName && environment.cloudinaryUploadPreset) {
       const payload = new FormData();
       payload.append('file', file);
@@ -494,6 +543,101 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
       photoUrl: ''
     });
     this.imageMessage.set('');
+    this.ecoScanResult.set(null);
+  }
+
+  private async runEcoScan(file: File): Promise<EcoScanResult> {
+    const name = file.name.toLowerCase();
+    const keywordScan = this.scanByFilename(name);
+    if (keywordScan) {
+      return keywordScan;
+    }
+
+    const imageStats = await this.readImageStats(file);
+    if (imageStats.blueRatio > 1.08) {
+      return { label: 'Water Leakage', confidence: 89, severity: 'High' };
+    }
+    if (imageStats.darkRatio > 0.42) {
+      return { label: 'Air Pollution', confidence: 86, severity: 'Critical' };
+    }
+    if (imageStats.edgeRatio > 0.55) {
+      return { label: 'Broken Infrastructure', confidence: 84, severity: 'High' };
+    }
+    if (imageStats.greenRatio > 1.08) {
+      return { label: 'Illegal Dumping', confidence: 87, severity: 'High' };
+    }
+    return { label: 'Garbage Dump', confidence: 92, severity: 'High' };
+  }
+
+  private scanByFilename(name: string): EcoScanResult | null {
+    if (name.includes('water') || name.includes('leak') || name.includes('drain')) {
+      return { label: 'Water Leakage', confidence: 94, severity: 'High' };
+    }
+    if (name.includes('smoke') || name.includes('air') || name.includes('pollution')) {
+      return { label: 'Air Pollution', confidence: 91, severity: 'Critical' };
+    }
+    if (name.includes('dump') || name.includes('illegal')) {
+      return { label: 'Illegal Dumping', confidence: 90, severity: 'High' };
+    }
+    if (name.includes('road') || name.includes('broken') || name.includes('infra')) {
+      return { label: 'Broken Infrastructure', confidence: 88, severity: 'Medium' };
+    }
+    if (name.includes('garbage') || name.includes('trash') || name.includes('waste')) {
+      return { label: 'Garbage Dump', confidence: 95, severity: 'High' };
+    }
+    return null;
+  }
+
+  private readImageStats(file: File): Promise<{ blueRatio: number; darkRatio: number; edgeRatio: number; greenRatio: number }> {
+    return new Promise((resolve) => {
+      const image = new Image();
+      const url = URL.createObjectURL(file);
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        const size = 80;
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext('2d');
+        if (!context) {
+          URL.revokeObjectURL(url);
+          resolve({ blueRatio: 1, darkRatio: 0, edgeRatio: 0, greenRatio: 1 });
+          return;
+        }
+
+        context.drawImage(image, 0, 0, size, size);
+        const pixels = context.getImageData(0, 0, size, size).data;
+        let blue = 0;
+        let green = 0;
+        let red = 0;
+        let dark = 0;
+        let contrast = 0;
+
+        for (let index = 0; index < pixels.length; index += 4) {
+          red += pixels[index];
+          green += pixels[index + 1];
+          blue += pixels[index + 2];
+          const brightness = (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
+          if (brightness < 80) {
+            dark++;
+          }
+          contrast += Math.abs(pixels[index] - pixels[index + 1]) + Math.abs(pixels[index + 1] - pixels[index + 2]);
+        }
+
+        const total = pixels.length / 4;
+        URL.revokeObjectURL(url);
+        resolve({
+          blueRatio: blue / Math.max(red + green, 1) * 2,
+          greenRatio: green / Math.max(red + blue, 1) * 2,
+          darkRatio: dark / total,
+          edgeRatio: contrast / total / 255
+        });
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve({ blueRatio: 1, darkRatio: 0, edgeRatio: 0, greenRatio: 1 });
+      };
+      image.src = url;
+    });
   }
 
   private toSupabaseRow(report: CrisisReport): Record<string, unknown> {

@@ -313,6 +313,64 @@ textarea {
   font-size: 0.9rem;
 }
 
+.ecoscan-card,
+.ecoscan-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #bfe4d6;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f0fbf6;
+}
+
+.ecoscan-card span,
+.ecoscan-summary span {
+  display: block;
+  margin-bottom: 4px;
+  color: #176f8c;
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ecoscan-card strong,
+.ecoscan-summary strong {
+  color: #102438;
+}
+
+.ecoscan-card p,
+.ecoscan-summary em {
+  margin: 0;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-style: normal;
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.severity.low {
+  background: #e8f6ef;
+  color: #2f855a;
+}
+
+.severity.medium {
+  background: #fff6df;
+  color: #9a6200;
+}
+
+.severity.high {
+  background: #fff0ed;
+  color: #b43b28;
+}
+
+.severity.critical {
+  background: #ffe2e2;
+  color: #9b1c1c;
+}
+
 .submit-button {
   min-height: 50px;
   background: #176f8c;
@@ -435,6 +493,29 @@ textarea {
   color: #2f855a;
 }
 
+.ignored-badge,
+.sdg-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin-left: 6px;
+  border-radius: 999px;
+  padding: 0 9px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ignored-badge {
+  background: #ffe2e2;
+  color: #9b1c1c;
+}
+
+.sdg-badge {
+  background: #eef6f8;
+  color: #176f8c;
+}
+
 .score-pill {
   min-width: 78px;
   border-radius: 8px;
@@ -466,6 +547,63 @@ textarea {
   aspect-ratio: 16 / 9;
   border-radius: 8px;
   object-fit: cover;
+}
+
+.compare-box {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.compare-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #102438;
+  aspect-ratio: 16 / 9;
+}
+
+.compare-frame img,
+.after-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.compare-frame img {
+  object-fit: cover;
+}
+
+.after-layer {
+  overflow: hidden;
+}
+
+.before-label,
+.after-label {
+  position: absolute;
+  top: 10px;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: rgba(16, 36, 56, 0.78);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.before-label {
+  left: 10px;
+}
+
+.after-label {
+  right: 10px;
+}
+
+.compare-box input[type="range"] {
+  margin-top: 0;
+  min-height: 28px;
+  padding: 0;
+  accent-color: #176f8c;
 }
 
 .issue-actions {

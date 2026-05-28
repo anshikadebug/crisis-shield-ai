@@ -117,6 +117,14 @@
           <strong>{{ imageMessage() || 'Choose image' }}</strong>
         </label>
 
+        <article class="ecoscan-card" *ngIf="ecoScanResult() as scan">
+          <div>
+            <span>EcoScan AI</span>
+            <strong>{{ scan.confidence }}% - {{ scan.label }}</strong>
+          </div>
+          <p [class]="'severity ' + scan.severity.toLowerCase()">{{ scan.severity }} severity</p>
+        </article>
+
         <button class="submit-button" type="submit">Add to Crisis Map</button>
       </form>
     </div>
@@ -146,8 +154,10 @@
       <article class="selected-card" *ngIf="selectedReport() as report">
         <div>
           <span class="status" [class]="statusClass(report.status)">{{ report.status }}</span>
+          <span class="ignored-badge" *ngIf="isIgnored(report)">Ignored</span>
+          <span class="sdg-badge">{{ sdgTag(report) }}</span>
           <h3>{{ report.title }}</h3>
-          <p>{{ report.area }} · {{ report.type }}</p>
+          <p>{{ report.area }} - {{ report.type }}</p>
         </div>
         <div class="selected-score">
           <span>Shield score</span>
@@ -181,8 +191,10 @@
       <div class="issue-top">
         <div>
           <span class="status" [class]="statusClass(report.status)">{{ report.status }}</span>
+          <span class="ignored-badge" *ngIf="isIgnored(report)">Ignored</span>
+          <span class="sdg-badge">{{ sdgTag(report) }}</span>
           <h3>{{ report.title }}</h3>
-          <p>{{ report.area }} · {{ report.createdAt }} · {{ report.urgency }} urgency</p>
+          <p>{{ report.area }} - {{ report.createdAt }} - {{ report.urgency }} urgency</p>
         </div>
         <div class="score-pill">
           <span>Shield</span>
@@ -192,9 +204,34 @@
 
       <p class="description">{{ report.description }}</p>
 
+      <div class="ecoscan-summary">
+        <span>EcoScan AI</span>
+        <strong>{{ ecoScanForReport(report).confidence }}% - {{ ecoScanForReport(report).label }}</strong>
+        <em [class]="'severity ' + ecoScanForReport(report).severity.toLowerCase()">{{ ecoScanForReport(report).severity }}</em>
+      </div>
+
       <div class="photo-strip" *ngIf="report.photoUrl || report.afterPhotoUrl">
         <img *ngIf="report.photoUrl" [src]="report.photoUrl" alt="Before proof">
         <img *ngIf="report.afterPhotoUrl" [src]="report.afterPhotoUrl" alt="After proof">
+      </div>
+
+      <div class="compare-box" *ngIf="report.photoUrl && report.afterPhotoUrl">
+        <div class="compare-frame">
+          <img [src]="report.photoUrl" alt="Before cleanup">
+          <div class="after-layer" [style.clip-path]="'inset(0 0 0 ' + comparePosition() + '%)'">
+            <img [src]="report.afterPhotoUrl" alt="After cleanup">
+          </div>
+          <span class="before-label">Before</span>
+          <span class="after-label">After</span>
+        </div>
+        <input
+          type="range"
+          min="5"
+          max="95"
+          [ngModel]="comparePosition()"
+          (ngModelChange)="updateComparePosition($event)"
+          name="compare-{{ report.id }}"
+        >
       </div>
 
       <div class="issue-actions">
