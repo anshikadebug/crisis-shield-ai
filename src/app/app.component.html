@@ -1,0 +1,218 @@
+<main class="app-shell">
+  <section class="hero-band">
+    <div class="hero-copy">
+      <p class="eyebrow">Community crisis response</p>
+      <h1>Crisis Shield AI</h1>
+      <p class="subtitle">
+        Report environmental risks, detect repeated crisis zones, and coordinate citizen-to-volunteer action on a real map.
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <a href="#report">Report Crisis</a>
+      <a href="#map" class="secondary">View Map</a>
+    </div>
+  </section>
+
+  <section class="control-bar">
+    <div class="mode-toggle" aria-label="App mode">
+      <button type="button" [class.active]="appMode() === 'Citizen'" (click)="setMode('Citizen')">Citizen</button>
+      <button type="button" [class.active]="appMode() === 'Volunteer'" (click)="setMode('Volunteer')">Volunteer</button>
+    </div>
+    <p>{{ syncMessage() }}</p>
+  </section>
+
+  <section class="metrics" aria-label="Crisis Shield overview">
+    <article>
+      <span>Active reports</span>
+      <strong>{{ activeReports() }}</strong>
+    </article>
+    <article>
+      <span>High urgency</span>
+      <strong>{{ highUrgencyReports() }}</strong>
+    </article>
+    <article>
+      <span>Solved cases</span>
+      <strong>{{ solvedReports() }}</strong>
+    </article>
+    <article>
+      <span>Most affected</span>
+      <strong class="area-stat">{{ mostAffectedArea() }}</strong>
+    </article>
+  </section>
+
+  <section class="alert-band">
+    <div>
+      <span>Smart cluster alert</span>
+      <strong>{{ communityAlert() }}</strong>
+    </div>
+    <p>Shield Priority Score uses urgency, votes, issue risk, status, and report age.</p>
+  </section>
+
+  <section class="workspace">
+    <div class="panel report-panel" id="report">
+      <div class="section-heading">
+        <p class="eyebrow">{{ appMode() === 'Citizen' ? 'Citizen report' : 'Volunteer intake' }}</p>
+        <h2>Report a crisis</h2>
+      </div>
+
+      <form (ngSubmit)="submitReport()">
+        <label>
+          <span>Title</span>
+          <input
+            type="text"
+            name="title"
+            placeholder="Overflowing garbage near bus stop"
+            [ngModel]="form().title"
+            (ngModelChange)="updateForm('title', $event)"
+          >
+        </label>
+
+        <div class="form-grid">
+          <label>
+            <span>Issue type</span>
+            <select name="type" [ngModel]="form().type" (ngModelChange)="updateForm('type', $event)">
+              <option *ngFor="let type of crisisTypes" [value]="type">{{ type }}</option>
+            </select>
+          </label>
+
+          <label>
+            <span>Urgency</span>
+            <select name="urgency" [ngModel]="form().urgency" (ngModelChange)="updateForm('urgency', $event)">
+              <option *ngFor="let urgency of urgencyLevels" [value]="urgency">{{ urgency }}</option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          <span>Area</span>
+          <input
+            type="text"
+            name="area"
+            placeholder="Market Road"
+            [ngModel]="form().area"
+            (ngModelChange)="updateForm('area', $event)"
+          >
+        </label>
+
+        <label>
+          <span>Description</span>
+          <textarea
+            name="description"
+            rows="4"
+            placeholder="Explain what happened and why it needs attention."
+            [ngModel]="form().description"
+            (ngModelChange)="updateForm('description', $event)"
+          ></textarea>
+        </label>
+
+        <div class="location-row">
+          <button type="button" class="ghost-button" (click)="useCurrentLocation()">Use My Location</button>
+          <p>{{ locationMessage() || 'Demo coordinates are used if location is skipped.' }}</p>
+        </div>
+
+        <label class="upload-box">
+          <input type="file" accept="image/*" (change)="uploadPhoto($event)">
+          <span>Attach photo proof</span>
+          <strong>{{ imageMessage() || 'Choose image' }}</strong>
+        </label>
+
+        <button class="submit-button" type="submit">Add to Crisis Map</button>
+      </form>
+    </div>
+
+    <div class="map-panel" id="map">
+      <div class="section-heading map-heading">
+        <div>
+          <p class="eyebrow">OpenStreetMap dashboard</p>
+          <h2>Crisis Map</h2>
+        </div>
+        <span>{{ filteredReports().length }} shown</span>
+      </div>
+
+      <div class="filter-row" aria-label="Map filters">
+        <button
+          *ngFor="let filter of filters"
+          type="button"
+          [class.active]="activeFilter() === filter"
+          (click)="setFilter(filter)"
+        >
+          {{ filter }}
+        </button>
+      </div>
+
+      <div id="crisis-map" class="real-map" aria-label="OpenStreetMap with crisis markers"></div>
+
+      <article class="selected-card" *ngIf="selectedReport() as report">
+        <div>
+          <span class="status" [class]="statusClass(report.status)">{{ report.status }}</span>
+          <h3>{{ report.title }}</h3>
+          <p>{{ report.area }} · {{ report.type }}</p>
+        </div>
+        <div class="selected-score">
+          <span>Shield score</span>
+          <strong>{{ shieldPriorityScore(report) }}</strong>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="impact-grid">
+    <article>
+      <span>Waste cases</span>
+      <strong>{{ wasteCases() }}</strong>
+    </article>
+    <article>
+      <span>Water risk cases</span>
+      <strong>{{ waterRiskCases() }}</strong>
+    </article>
+    <article>
+      <span>Pollution cases</span>
+      <strong>{{ pollutionCases() }}</strong>
+    </article>
+    <article>
+      <span>Community votes</span>
+      <strong>{{ totalUpvotes() }}</strong>
+    </article>
+  </section>
+
+  <section class="issue-grid">
+    <article class="issue-card" *ngFor="let report of sortedReports()">
+      <div class="issue-top">
+        <div>
+          <span class="status" [class]="statusClass(report.status)">{{ report.status }}</span>
+          <h3>{{ report.title }}</h3>
+          <p>{{ report.area }} · {{ report.createdAt }} · {{ report.urgency }} urgency</p>
+        </div>
+        <div class="score-pill">
+          <span>Shield</span>
+          <strong>{{ shieldPriorityScore(report) }}</strong>
+        </div>
+      </div>
+
+      <p class="description">{{ report.description }}</p>
+
+      <div class="photo-strip" *ngIf="report.photoUrl || report.afterPhotoUrl">
+        <img *ngIf="report.photoUrl" [src]="report.photoUrl" alt="Before proof">
+        <img *ngIf="report.afterPhotoUrl" [src]="report.afterPhotoUrl" alt="After proof">
+      </div>
+
+      <div class="issue-actions">
+        <button type="button" (click)="upvote(report.id)">Upvote {{ report.upvotes }}</button>
+        <select
+          *ngIf="appMode() === 'Volunteer'"
+          [ngModel]="report.status"
+          (ngModelChange)="updateStatus(report.id, $event)"
+          [name]="'status-' + report.id"
+        >
+          <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        </select>
+        <label class="after-upload" *ngIf="appMode() === 'Volunteer'">
+          <input type="file" accept="image/*" (change)="uploadAfterPhoto($event, report.id)">
+          After photo
+        </label>
+        <button type="button" class="map-focus" (click)="selectReport(report.id)">Locate</button>
+      </div>
+    </article>
+  </section>
+</main>
