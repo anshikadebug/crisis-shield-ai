@@ -451,8 +451,17 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     const { data, error } = await this.supabase.from('reports').select('*').order('created_at', { ascending: false });
-    if (error || !data?.length) {
-      this.syncMessage.set(error ? 'Supabase table not ready. Using local demo data.' : 'No Supabase reports yet. Using local demo data.');
+    if (error) {
+      this.syncMessage.set('Supabase table not ready. Using local demo data.');
+      return;
+    }
+
+    if (!data?.length) {
+      this.reports.set([]);
+      this.selectedReportId.set(0);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      this.syncMessage.set('Supabase connected. No reports yet.');
+      this.refreshMap();
       return;
     }
 
